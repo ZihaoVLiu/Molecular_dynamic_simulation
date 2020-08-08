@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 #     return result
 
 
-def get_count(x, y, x_interval, y_interval):
+def get_count(x, y, x_interval, y_interval, bound_value):
     '''
     Get the number of atoms of each pixel.
     Note: The higher the resolution, the more computation time consuming
@@ -51,10 +51,14 @@ def get_count(x, y, x_interval, y_interval):
         for col in range(result.shape[1]):
             result[row, col] = np.sum(x_count[row] * y_count[col])
         print('{} row count done.'.format(str(row + 1)))
+    result[:, 0] = bound_value
+    result[:, -1] = bound_value
+    result[0, :] = bound_value
+    result[-1, :] = bound_value
     return result
 
 
-def draw_contour(x, y, interval, cmap, title, save_name='_.png'):
+def draw_contour(x, y, interval, bound_value, cmap, title, save_name='_.png', location=(0,0,0,0)):
     '''
     Visualize the molecular dynamic and output a .png format image.
     :param x: The X-coord location of your view.
@@ -63,16 +67,25 @@ def draw_contour(x, y, interval, cmap, title, save_name='_.png'):
     :param cmap: Color map, the color you want to visualize on your heat map.
     :param title: Title showed on .png image.
     :param save_name: File name of your output image.
+    :param frame_size: the size of visualization size.
+    :param bound_value: Edge value to bound the visualization image
+    :param location: a tuple (left_X, right_X, top_Y, bottom_Y)
     :return: None, but save visualization image on your work path.
     '''
-    x_max = np.max(x)
-    x_min = np.min(x)
-    y_max = np.max(y)
-    y_min = np.min(y)
+    if location == (0,0,0,0):
+        x_max = 72
+        x_min = -72
+        y_max = 72
+        y_min = -72
+    else:
+        x_max = location[1]
+        x_min = location[0]
+        y_max = location[2]
+        y_min = location[3]
     x_interval = np.linspace(x_min, x_max, interval)
     y_interval = np.linspace(y_min, y_max, interval)
     X, Y = np.meshgrid(x_interval, y_interval)
-    Z = get_count(x, y, x_interval, y_interval)
+    Z = get_count(x, y, x_interval, y_interval, bound_value)
     plt.contourf(X, Y, Z, cmap=cmap)
     plt.colorbar()
     plt.xlabel('* 10^-1 nm')
@@ -116,13 +129,13 @@ if __name__ == '__main__':
     # comment the following code after you run the following code block first time
     # this code block is used to transfer the .xlsx file to .h5 format,
     # which could save a lot of I/O time each time you run the code.
-    data_frame01 = pd.read_excel(path, sheet_name='0.1ns')
-    data_frame5 = pd.read_excel(path, sheet_name='5ns')
-    data_frame10 = pd.read_excel(path, sheet_name='10ns')
-    with h5py.File('data.h5', 'w') as hf:
-        hf.create_dataset("01ns", data=data_frame01.iloc[:, 0:5].values)
-        hf.create_dataset("5ns", data=data_frame5.iloc[:, 0:5].values)
-        hf.create_dataset("10ns", data=data_frame10.iloc[:, 0:5].values)
+    # data_frame01 = pd.read_excel(path, sheet_name='0.1ns')
+    # data_frame5 = pd.read_excel(path, sheet_name='5ns')
+    # data_frame10 = pd.read_excel(path, sheet_name='10ns')
+    # with h5py.File('data.h5', 'w') as hf:
+    #     hf.create_dataset("01ns", data=data_frame01.iloc[:, 0:5].values)
+    #     hf.create_dataset("5ns", data=data_frame5.iloc[:, 0:5].values)
+    #     hf.create_dataset("10ns", data=data_frame10.iloc[:, 0:5].values)
 
     # load the h5 file you get from last step
     with h5py.File('data.h5', 'r') as hf:
@@ -135,6 +148,7 @@ if __name__ == '__main__':
     # load the xyz of the atom on particular time
     x, y, z = get_atom_xyz(data=data10, atom_type='N')
     # draw the heat map (also known as contour(等高线) map)
-    draw_contour(x=x, y=z, interval=50, cmap='Oranges',
+    location = (0, 50, 0, -50)
+    draw_contour(x=x, y=z, interval=50, bound_value=5, cmap='Oranges', location=location,
                  title='10 ns, N atom molecular dynamic (Front view)', save_name='10_N_Front.png')
 
